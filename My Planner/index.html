@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Planner</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="My Planner" />
+<meta name="theme-color" content="#f5f5f3" />
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+  :root {
+    --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+    --text:#1a1a18;--text2:#6b6b67;--text3:#a0a09c;
+    --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+    --radius:10px;--radius-sm:7px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;--text:#f0f0ec;--text2:#9a9a94;--text3:#5e5e5a;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2)}
+    .u-critical{background:#4a1b0c!important;color:#f0997b!important}
+    .u-high{background:#412402!important;color:#FAC775!important}
+    .u-medium{background:#042c53!important;color:#85b7eb!important}
+    .u-low{background:#173404!important;color:#97c459!important}
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding:1.5rem 1rem 4rem}
+  .card{background:var(--bg);border-radius:16px;border:0.5px solid var(--border);max-width:620px;margin:0 auto;padding:1.5rem 1.25rem}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+  .header h1{font-size:20px;font-weight:600}
+  .header span{font-size:13px;color:var(--text2)}
+  .tabs{display:flex;gap:8px;margin-bottom:1.25rem;justify-content:center;overflow-x:auto;padding:4px 20px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;box-sizing:content-box}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{width:62px;height:62px;min-width:62px;min-height:62px;font-size:10.5px;border-radius:50%!important;cursor:pointer;font-family:inherit;font-weight:600;border:none;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.3;padding:0;flex-shrink:0;white-space:pre-line}
+  .tab:hover{opacity:0.75}
+  .stats{display:flex;gap:8px;margin-bottom:1.25rem}
+  .stat{flex:1;background:var(--bg2);border-radius:var(--radius-sm);padding:10px 12px;text-align:center}
+  .stat-num{font-size:20px;font-weight:600}
+  .stat-label{font-size:11px;color:var(--text2);margin-top:2px}
+  .add-row{display:grid;grid-template-columns:100px 1fr 36px;gap:8px;margin-bottom:1.25rem;align-items:center}
+  .urgency-sel{width:100px!important;max-width:100px!important;min-width:100px!important;height:36px;padding:0 6px;font-size:15px;font-family:inherit;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;cursor:pointer;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none}
+  .fake-input{height:36px;padding:0 12px;font-size:14px;font-family:inherit;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);outline:none;cursor:text;display:flex;align-items:center;position:relative;overflow:hidden}
+  .fake-input:focus-within{border-color:var(--text3)}
+  .fake-input [contenteditable]{flex:1;outline:none;white-space:nowrap;overflow:hidden;color:var(--text);font-size:16px;font-family:inherit}
+  .fake-input .ph{position:absolute;left:12px;color:var(--text3);pointer-events:none;font-size:16px}
+  .add-btn{height:36px;width:36px;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);cursor:pointer;font-size:20px;transition:background 0.15s}
+  .add-btn:hover{background:var(--bg2)}
+  .section-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;padding-left:2px}
+  .items-list{display:flex;flex-direction:column;gap:4px}
+  .item-wrap{display:flex;flex-direction:column;border-radius:var(--radius-sm);border:0.5px solid transparent;background:var(--bg);transition:border-color 0.15s}
+  .item-wrap:hover{border-color:var(--border)}
+  .item-wrap.has-note{border-color:var(--border)}
+  .item-row{display:flex;align-items:center;gap:8px;padding:9px 12px;min-width:0}
+  .item-wrap.done{opacity:0.42}
+  .item-wrap.done .item-text{text-decoration:line-through;color:var(--text2)}
+  .item-check{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s;color:transparent;font-size:11px}
+  .item-check:hover{border-color:var(--text)}
+  .item-wrap.done .item-check{background:var(--text);border-color:var(--text);color:var(--bg)}
+  .item-text{flex:1;font-size:14px;line-height:1.4;min-width:0;word-break:break-word;cursor:pointer}
+  .item-text.editing{outline:none;border-bottom:1.5px solid var(--border2);cursor:text;padding-bottom:2px}
+  .urgency-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;flex-shrink:0}
+  .note-toggle{background:none;border:none;cursor:pointer;color:var(--text3);padding:2px 6px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;font-size:15px;transition:color 0.15s}
+  .note-toggle:hover,.note-toggle.active{color:var(--text2)}
+  .note-area{padding:0 12px 10px 40px;display:none}
+  .note-area.open{display:block}
+  .note-editor{font-size:13px;color:var(--text2);font-family:inherit;outline:none;min-height:20px;line-height:1.5;border-bottom:0.5px solid var(--border);padding-bottom:4px;width:100%;display:block}
+  .note-editor:empty:before{content:attr(data-ph);color:var(--text3);pointer-events:none}
+  .del-btn{width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#C0675A;opacity:1;font-size:15px;flex-shrink:0;background:none;border:none;border-radius:50%;transition:background 0.15s}
+  .del-btn:hover{background:#FAECE7;color:#E24B4A}
+  .empty{text-align:center;padding:2.5rem 0;color:var(--text3);font-size:14px}
+  .done-divider{display:flex;align-items:center;gap:8px;margin:14px 0 8px}
+  .done-divider span{font-size:11px;color:var(--text3);white-space:nowrap;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+  .done-divider hr{flex:1;border:none;border-top:0.5px solid var(--border)}
+  @media(max-width:480px){body{padding:1rem 0.5rem 4rem}.card{padding:1.25rem 1rem;border-radius:12px}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>My silly little planner</h1>
+    <span id="date-display"></span>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">total</div></div>
+    <div class="stat"><div class="stat-num" id="stat-done">0</div><div class="stat-label">done</div></div>
+    <div class="stat"><div class="stat-num" id="stat-left">0</div><div class="stat-label">remaining</div></div>
+  </div>
+  <div class="add-row">
+    <select class="urgency-sel" id="urgency-select">
+      <option value="medium">Medium</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="low">Low</option>
+    </select>
+    <div class="fake-input">
+      <span class="ph" id="ph">Add a goal or task…</span>
+      <div contenteditable="true" id="new-item" spellcheck="false"></div>
+    </div>
+    <button class="add-btn" id="add-btn" aria-label="Add"><i class="ti ti-plus"></i></button>
+  </div>
+  <div class="section-label" id="section-label">Today</div>
+  <div class="items-list" id="items-list"></div>
+</div>
+<script>
+const PERIODS=[
+  {key:'today',label:'Today',bg:'#EAF3DE',color:'#3B6D11',activeBg:'#3B6D11'},
+  {key:'week',label:'This\nweek',bg:'#E6F1FB',color:'#185FA5',activeBg:'#185FA5'},
+  {key:'month',label:'This\nmonth',bg:'#FAEEDA',color:'#854F0B',activeBg:'#854F0B'},
+  {key:'year',label:'This\nyear',bg:'#EEEDFE',color:'#534AB7',activeBg:'#534AB7'},
+  {key:'nextyear',label:'Next\nyear',bg:'#FBEAF0',color:'#993556',activeBg:'#993556'},
+];
+const UL={critical:'Critical',high:'High',medium:'Medium',low:'Low'};
+const UB={critical:{bg:'#FAECE7',color:'#993C1D'},high:{bg:'#FAEEDA',color:'#854F0B'},medium:{bg:'#E6F1FB',color:'#185FA5'},low:{bg:'#EAF3DE',color:'#3B6D11'}};
+const PL={today:'Today',week:'This week',month:'This month',year:'This year',nextyear:'Next year'};
+
+let state={period:'today',items:[]};
+try{const s=localStorage.getItem('planner_v4');if(s)state.items=JSON.parse(s);}catch(e){}
+function save(){try{localStorage.setItem('planner_v4',JSON.stringify(state.items));}catch(e){}}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function buildTabs(){
+  const c=document.getElementById('tabs');c.innerHTML='';
+  PERIODS.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='tab';btn.textContent=p.label;
+    const active=p.key===state.period;
+    btn.style.cssText=`background:${active?p.activeBg:p.bg};color:${active?'#fff':p.color};padding:6px 14px;font-size:13px;border-radius:20px;cursor:pointer;font-family:inherit;font-weight:500;border:none`;
+    btn.addEventListener('click',()=>{state.period=p.key;buildTabs();render();});
+    c.appendChild(btn);
+  });
+}
+
+const editor=document.getElementById('new-item');
+const ph=document.getElementById('ph');
+function updatePh(){ph.style.display=editor.textContent.trim()?'none':'block';}
+editor.addEventListener('input',updatePh);
+editor.addEventListener('focus',updatePh);
+editor.addEventListener('blur',updatePh);
+
+function render(){
+  const list=document.getElementById('items-list');
+  document.getElementById('section-label').textContent=PL[state.period];
+  const all=state.items.filter(i=>i.period===state.period);
+  const o={critical:0,high:1,medium:2,low:3};
+  const pending=all.filter(i=>!i.done).sort((a,b)=>(o[a.urgency]||2)-(o[b.urgency]||2));
+  const done=all.filter(i=>i.done);
+  document.getElementById('stat-total').textContent=all.length;
+  document.getElementById('stat-done').textContent=done.length;
+  document.getElementById('stat-left').textContent=pending.length;
+  list.innerHTML='';
+  if(!all.length){list.innerHTML='<div class="empty">Nothing here yet — add your first item above</div>';return;}
+  pending.forEach(item=>list.appendChild(makeItem(item)));
+  if(done.length){
+    const d=document.createElement('div');
+    d.className='done-divider';
+    d.innerHTML='<hr><span>Completed</span><hr>';
+    list.appendChild(d);
+    done.forEach(item=>list.appendChild(makeItem(item)));
+  }
+}
+
+function makeItem(item){
+  const wrap=document.createElement('div');
+  wrap.className='item-wrap'+(item.done?' done':'')+(item.note?' has-note':'');
+  const ub=UB[item.urgency]||UB.medium;
+  const hasNote=!!(item.note&&item.note.trim());
+  const row=document.createElement('div');
+  row.setAttribute('style','display:flex;flex-direction:row;align-items:center;gap:8px;padding:9px 12px;min-width:0;position:relative');
+
+  const check=document.createElement('div');
+  check.className='item-check';
+  check.tabIndex=0;
+  check.setAttribute('role','checkbox');
+  check.setAttribute('aria-checked',item.done);
+  if(item.done)check.innerHTML='<i class="ti ti-check"></i>';
+
+  const textEl=document.createElement('span');
+  textEl.className='item-text';
+  textEl.textContent=item.text;
+
+  const badge=document.createElement('span');
+  badge.className='urgency-badge';
+  badge.style.cssText=`background:${ub.bg};color:${ub.color}`;
+  badge.textContent=UL[item.urgency];
+
+  const actions=document.createElement('div');
+  actions.setAttribute('style','display:flex;flex-direction:row;align-items:center;flex-shrink:0;gap:0');
+
+  const noteBtn=document.createElement('button');
+  noteBtn.setAttribute('style','background:none;border:none;cursor:pointer;color:#a0a09c;display:flex;align-items:center;justify-content:center;font-size:17px;width:32px;height:32px;border-radius:8px;padding:0;flex-shrink:0');
+  noteBtn.setAttribute('aria-label','Toggle note');
+  noteBtn.innerHTML='<i class="ti ti-notes"></i>';
+  if(hasNote)noteBtn.style.color='#6b6b67';
+
+  const moveBtn=document.createElement('button');
+  moveBtn.setAttribute('style','background:none;border:none;cursor:pointer;color:#a0a09c;display:flex;align-items:center;justify-content:center;font-size:17px;width:32px;height:32px;border-radius:8px;padding:0;flex-shrink:0');
+  moveBtn.setAttribute('aria-label','Move to period');
+  moveBtn.innerHTML='<i class="ti ti-arrows-transfer-down"></i>';
+
+  const delBtn=document.createElement('button');
+  delBtn.setAttribute('style','background:none;border:none;cursor:pointer;color:#C0675A;display:flex;align-items:center;justify-content:center;font-size:17px;width:32px;height:32px;border-radius:50%;padding:0;flex-shrink:0');
+  delBtn.setAttribute('aria-label','Delete');
+  delBtn.innerHTML='<i class="ti ti-x"></i>';
+
+  actions.appendChild(noteBtn);
+  actions.appendChild(moveBtn);
+  actions.appendChild(delBtn);
+  row.appendChild(check);
+  row.appendChild(textEl);
+  row.appendChild(badge);
+  row.appendChild(actions);
+
+  // Move popup — appended to body to avoid overflow clipping
+  const movePopup=document.createElement('div');
+  movePopup.className='move-popup';
+  PERIODS.forEach(p=>{
+    if(p.key===item.period)return;
+    const pip=document.createElement('button');
+    pip.className='move-pip';
+    pip.style.cssText=`background:${p.bg};color:${p.color}`;
+    pip.textContent=p.label;
+    pip.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      item.period=p.key;
+      movePopup.classList.remove('open');
+      document.body.removeChild(movePopup);
+      save();render();
+    });
+    movePopup.appendChild(pip);
+  });
+
+  moveBtn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    const isOpen=movePopup.classList.contains('open');
+    // close any other open popups
+    document.querySelectorAll('.move-popup.open').forEach(p=>{
+      p.classList.remove('open');
+    });
+    if(!isOpen){
+      document.body.appendChild(movePopup);
+      movePopup.classList.add('open');
+    } else {
+      if(movePopup.parentNode)document.body.removeChild(movePopup);
+    }
+  });
+  document.addEventListener('click',()=>{
+    if(movePopup.classList.contains('open')){
+      movePopup.classList.remove('open');
+      if(movePopup.parentNode)document.body.removeChild(movePopup);
+    }
+  });
+
+  // Inline edit — double tap
+  let tapTimer=null;
+  textEl.addEventListener('click',()=>{
+    if(tapTimer){
+      clearTimeout(tapTimer);tapTimer=null;
+      textEl.contentEditable='true';
+      textEl.classList.add('editing');
+      textEl.focus();
+      const range=document.createRange();
+      range.selectNodeContents(textEl);
+      range.collapse(false);
+      const sel=window.getSelection();
+      sel.removeAllRanges();sel.addRange(range);
+    } else {
+      tapTimer=setTimeout(()=>{tapTimer=null;},300);
+    }
+  });
+  textEl.addEventListener('blur',()=>{
+    const newText=textEl.textContent.trim();
+    if(newText){item.text=newText;save();}
+    else{textEl.textContent=item.text;}
+    textEl.contentEditable='false';
+    textEl.classList.remove('editing');
+  });
+  textEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();textEl.blur();}
+  });
+
+  // Note area
+  const noteArea=document.createElement('div');
+  noteArea.className='note-area'+(hasNote?' open':'');
+  const noteEditor=document.createElement('div');
+  noteEditor.className='note-editor';
+  noteEditor.contentEditable='true';
+  noteEditor.setAttribute('data-ph','Add a note…');
+  noteEditor.spellcheck=false;
+  if(item.note)noteEditor.textContent=item.note;
+  noteArea.appendChild(noteEditor);
+  noteEditor.addEventListener('input',()=>{item.note=noteEditor.textContent.trim();wrap.classList.toggle('has-note',!!item.note);save();});
+  noteBtn.addEventListener('click',()=>{
+    const open=noteArea.classList.toggle('open');
+    noteBtn.classList.toggle('active',open);
+    if(open)setTimeout(()=>noteEditor.focus(),50);
+  });
+
+  check.addEventListener('click',()=>toggle(item.id));
+  check.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')toggle(item.id);});
+  delBtn.addEventListener('click',()=>del(item.id));
+
+  wrap.appendChild(row);
+  wrap.appendChild(noteArea);
+  return wrap;
+}
+
+function addItem(){
+  const text=editor.textContent.trim();
+  if(!text)return;
+  state.items.push({id:Date.now()+Math.random(),period:state.period,text,urgency:document.getElementById('urgency-select').value,done:false,note:''});
+  editor.textContent='';ph.style.display='block';editor.focus();
+  save();render();
+}
+function toggle(id){
+  const item=state.items.find(i=>i.id===id);
+  if(item){item.done=!item.done;save();render();}
+}
+function del(id){
+  state.items=state.items.filter(i=>i.id!==id);
+  save();render();
+}
+document.getElementById('add-btn').addEventListener('click',addItem);
+editor.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem();}});
+document.getElementById('date-display').textContent=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+buildTabs();render();
+</script>
+</body>
+</html>
