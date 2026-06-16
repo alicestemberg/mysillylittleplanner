@@ -1,0 +1,22 @@
+{
+  "name": "My Silly Little Planner",
+  "short_name": "Planner",
+  "start_url": "/mysillylittleplanner/",
+  "scope": "/mysillylittleplanner/",
+  "display": "standalone",
+  "background_color": "#f5f5f3",
+  "theme_color": "#f5f5f3",
+  "description": "My personal goal and task planner",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
